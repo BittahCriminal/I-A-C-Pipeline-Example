@@ -37,16 +37,24 @@
                 "encryption": {
                     "keySource": "Microsoft.Keyvault",
                     "keyVaultProperties": {
-                        
+                         
                     }
                 }
-            }
+            },
+            "dependson":[
+                "keyvaultCopy"
+            ]
         },
         {
             "name": "keyVault1",
             "type": "Microsoft.KeyVault/vaults",
             "apiVersion": "2016-10-01",
             "location": "[resourceGroup().location]",
+            "copy":{
+                "name": "keyvaultCopy",
+                "count": 1,
+                "mode": "parallel"
+            },
             "tags": {
                 "displayName": "keyVault1"
             },
