@@ -6,26 +6,10 @@
             "type": "object"
         }
     },
-    "functions": [
-        {
-            "namespace": "namespacename",
-            "members": {
-                "functionname": {
-                    "parameters": [
-                        {
-                            "name": "parametername",
-                            "type": "string"
-                        }
-                    ],
-                    "output": {
-                        "value": "function-return-value",
-                        "type": "string"
-                    }
-                }
-            }
-        }
-    ],
-    "variables": {},
+    "functions": [],
+    "variables": {
+        "tenantId":"[subscription().tenantId]"
+    },
     "resources": [
         {
             "name": "[parameters('inputObject').resourceName]",
@@ -62,10 +46,10 @@
                 "enabledForDeployment": true,
                 "enabledForTemplateDeployment": true,
                 "enabledForDiskEncryption": true,
-                "tenantId": "tenantId",
+                "tenantId": "[variables('tenantId')]",
                 "accessPolicies": [
                     {
-                        "tenantId": "tenantId",
+                        "tenantId": "[variables('tenantId')]",
                         "objectId": "objectId",
                         "permissions": {
                             "keys": [
