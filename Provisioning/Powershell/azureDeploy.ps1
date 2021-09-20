@@ -1,5 +1,29 @@
 #requires -Modules Az.Resources
+Function ConvertIPtoInt64 {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$True)]
+        [String]
+        $IpAddress
+    ) 
+    $octets = $IpAddress.split(".") 
+    write-output ([int64]([int64]$octets[0] * 16777216 + [int64]$octets[1] * 65536 + [int64]$octets[2] * 256 + [int64]$octets[3]) )
+}
 
+function ConvertInt64toIP {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$True)]
+        [Int64]
+        $Int
+    ) 
+
+    $FirstOctet = ([math]::truncate($Int / 16777216)).tostring()
+    $SecondOctet = ([math]::truncate(($Int % 16777216) / 65536)).tostring()
+    $thirdOctet = ([math]::truncate(($Int % 65536) / 256)).tostring()
+    $fourthOctet = ([math]::truncate(($Int % 65536) / 256)).tostring()
+    Write-output ($FirstOctet + "." + $SecondOctet + "." + $thirdOctet + "." + $fourthOctet )
+}
 Function New-AzureVirtualMachine {
     [CmdletBinding()]
     param (
@@ -19,9 +43,26 @@ Function New-AzureVirtualMachine {
 
         [Parameter(Mandatory=$true)]
         [pscustomobject]$tags,
-
+        
+        [Parameter(ParameterSetName="existingNetwork")]
         [Parameter(Mandatory=$true)]
-        [pscustomobject]$properties,
+        [string]$subnetResourceId,
+        
+        [Parameter(ParameterSetName="existingNetwork")]
+        [Parameter(Mandatory=$true)]
+        [string]$vNetResourceId,
+
+        [Parameter(ParameterSetName="NewNetwork")]
+        [Parameter(Mandatory=$true)]
+        [string]$subnetName,
+        
+        [Parameter(ParameterSetName="NewNetwork")]
+        [Parameter(Mandatory=$true)]
+        [string]$vNetName,
+
+        [Parameter(ParameterSetName="NewNetwork")]
+        [Parameter(Mandatory=$true)]
+        [string]$vNetResourceGroupName,
 
         [Parameter(Mandatory=$false)]
         [int]$numberOfDisks = 0,
@@ -30,6 +71,16 @@ Function New-AzureVirtualMachine {
         [switch]$publicIp = [switch]$false
 
     )
-    New-AzNetworkInterface -
-    New-AzVMConfig 
+
+    Write-Verbose -Message "Creating virtual Network if applicable"
+    if($vNetName) {
+        New-AzVirtualNetwork -Name $vNetName -ResourceGroupName
+    }
+
+    Write-Verbose -Message "Setting up IP Configurations"
+    $ipConfigParamSplat = @{
+
+    }
+    
+    New-AzNetworkInterfaceIpConfig -Name "primary" -PrivateIpAddressVersion IPv4 -Primary -SubnetId $subnetResourceId
 }
