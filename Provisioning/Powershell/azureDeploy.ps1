@@ -1,30 +1,28 @@
 #requires -Modules Az.Resources
-Function ConvertIPtoInt64 {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $True)]
-        [String]
-        $IpAddress
-    ) 
-    $octets = $IpAddress.split(".") 
-    write-output ([int64]([int64]$octets[0] * 16777216 + [int64]$octets[1] * 65536 + [int64]$octets[2] * 256 + [int64]$octets[3]) )
-}
-
-function ConvertInt64toIP {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $True)]
-        [Int64]
-        $Int
-    ) 
-
-    $FirstOctet = ([math]::truncate($Int / 16777216)).tostring()
-    $SecondOctet = ([math]::truncate(($Int % 16777216) / 65536)).tostring()
-    $thirdOctet = ([math]::truncate(($Int % 65536) / 256)).tostring()
-    $fourthOctet = ([math]::truncate(($Int % 65536) / 256)).tostring()
-    Write-output ($FirstOctet + "." + $SecondOctet + "." + $thirdOctet + "." + $fourthOctet )
-}
-
+function IsIpAddressInRange {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $ipAddress,
+        [Parameter(Mandatory=$true)]
+        [string] $fromAddress,
+        [Parameter(Mandatory=$true)]
+        [string] $toAddress
+    )
+    
+        $ip = [system.net.ipaddress]::Parse($ipAddress).GetAddressBytes()
+        [array]::Reverse($ip)
+        $ip = [system.BitConverter]::ToUInt32($ip, 0)
+    
+        $from = [system.net.ipaddress]::Parse($fromAddress).GetAddressBytes()
+        [array]::Reverse($from)
+        $from = [system.BitConverter]::ToUInt32($from, 0)
+    
+        $to = [system.net.ipaddress]::Parse($toAddress).GetAddressBytes()
+        [array]::Reverse($to)
+        $to = [system.BitConverter]::ToUInt32($to, 0)
+    
+        $from -le $ip -and $ip -le $to
+    }
 Function New-AzureVirtualMachine {
     [CmdletBinding()]
     param (
@@ -58,6 +56,9 @@ Function New-AzureVirtualMachine {
         [string]$vNetName,
 
         [Parameter(ParameterSetName = "NewNetwork", Mandatory = $true)]
+        [string]$addressPrefix,
+
+        [Parameter(ParameterSetName = "NewNetwork", Mandatory = $true)]
         [string]$vNetResourceGroupName,
 
         [Parameter(Mandatory = $false)]
@@ -70,11 +71,46 @@ Function New-AzureVirtualMachine {
 
     Write-Verbose -Message "Creating virtual Network if applicable"
     if ($vNetName) {
-        New-AzVirtualNetwork -Name $vNetName -ResourceGroupName $vNetResourceGroupName -Location $location -AddressPrefix
+        Write-Verbose -Message "Creating Vnet resource group"
+        $resourceGroupParamSplat = @{
+            Name        = $vNetResourceId
+            Location    = $location
+            ErrorAction = "Stop"
+        }
+        try {
+            New-AzResourceGroup @resourceGroupParamSplat
+        }
+        catch {
+            Write-Error "Unable to create Resource group. Error < $_.Exception >"
+        }
+
+        write-verbose "Creating Subnet in the Vnet $vNetName"
+
+        $subnetNetworkParamSplat = @{
+            Name = $subnetName
+            AddressPrefix = $addressPrefix
+            ErrorAction       = "Stop"
+        }
+        $subnet = New-AzVirtualNetworkSubnetConfig @subnetNetworkParamSplat
+
+        write-verbose "Creating a virtual network"
+        $virtualNetworkParamSplat = @{
+            Name              = $vNetName
+            ResourceGroupName = $vNetResourceGroupName
+            Location          = $location
+            AddressPrefix     = $addressPrefix
+            ErrorAction       = "Stop"
+            Subnet = $subnet
+        }
+        New-AzVirtualNetwork @virtualNetworkParamSplat -sub
+
     }
 
     Write-Verbose -Message "Setting up IP Configurations"
     $ipConfigParamSplat = @{
+        Name = "Primary"
+        PrivateIpAddressVersion = "IPv4"
+        SubnetId = $subnetResourceId
 
     }
     
