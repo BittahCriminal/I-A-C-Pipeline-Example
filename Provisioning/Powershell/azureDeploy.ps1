@@ -1,28 +1,85 @@
 #requires -Modules Az.Resources
-function IsIpAddressInRange {
-    param(
-        [Parameter(Mandatory=$true)]
-        [string] $ipAddress,
-        [Parameter(Mandatory=$true)]
-        [string] $fromAddress,
-        [Parameter(Mandatory=$true)]
-        [string] $toAddress
+Function ConvertIPtoInt64 {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $True)]
+        [String]
+        $IpAddress
+    ) 
+    $octets = $IpAddress.split(".") 
+    write-output ([int64]([int64]$octets[0] * 16777216 + [int64]$octets[1] * 65536 + [int64]$octets[2] * 256 + [int64]$octets[3]) )
+}
+
+Function ConvertInt64toIP {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $True)]
+        [Int64]
+        $Int
+    ) 
+
+    $FirstOctet = ([math]::truncate($Int / 16777216)).tostring()
+    $SecondOctet = ([math]::truncate(($Int % 16777216) / 65536)).tostring()
+    $thirdOctet = ([math]::truncate(($Int % 65536) / 256)).tostring()
+    $fourthOctet = ([math]::truncate(($Int % 65536) / 256)).tostring()
+    Write-output ($FirstOctet + "." + $SecondOctet + "." + $thirdOctet + "." + $fourthOctet )
+}
+
+Function InCidr {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $CIDR,
+        [Parameter(Mandatory = $true)]
+        [string]
+        $ipAddress
     )
-    
-        $ip = [system.net.ipaddress]::Parse($ipAddress).GetAddressBytes()
-        [array]::Reverse($ip)
-        $ip = [system.BitConverter]::ToUInt32($ip, 0)
-    
-        $from = [system.net.ipaddress]::Parse($fromAddress).GetAddressBytes()
-        [array]::Reverse($from)
-        $from = [system.BitConverter]::ToUInt32($from, 0)
-    
-        $to = [system.net.ipaddress]::Parse($toAddress).GetAddressBytes()
-        [array]::Reverse($to)
-        $to = [system.BitConverter]::ToUInt32($to, 0)
-    
-        $from -le $ip -and $ip -le $to
+
+    $maskTable = @{
+        0  = 4294967296
+        1  = 2147483648
+        2  = 1073741824
+        3  = 536870912
+        4  = 268435456
+        5  = 134217728
+        6  = 33554432
+        7  = 33554432
+        8  = 16777216
+        9  = 8388608
+        10 = 4194304
+        11 = 2097152
+        12 = 1048576
+        13 = 524288
+        14 = 262144
+        15 = 131072
+        16 = 65536
+        17 = 32768
+        18 = 16384
+        19 = 8192
+        20 = 4096
+        21 = 2048
+        22 = 1024
+        23 = 512
+        24 = 256
+        25 = 128
+        26 = 64
+        27 = 32
+        28 = 16
+        29 = 8
+        30 = 4
+        31 = 2
+        32 = 1
     }
+
+    $range = $maskTable = $CIDR.Split('/')
+    If($range -notin $maskTable){
+        Write-Error "The CIDR, < $range > does not fall in the range of 0 to 32"
+        exit
+    }
+
+
+}
 Function New-AzureVirtualMachine {
     [CmdletBinding()]
     param (
@@ -61,9 +118,6 @@ Function New-AzureVirtualMachine {
         [Parameter(ParameterSetName = "NewNetwork", Mandatory = $true)]
         [string]$vNetResourceGroupName,
 
-        [Parameter(Mandatory = $false)]
-        [int]$numberOfDisks = 2,
-
         [Parameter()]
         [switch]$publicIp = [switch]$false
 
@@ -91,6 +145,7 @@ Function New-AzureVirtualMachine {
             AddressPrefix = $addressPrefix
             ErrorAction       = "Stop"
         }
+
         $subnet = New-AzVirtualNetworkSubnetConfig @subnetNetworkParamSplat
 
         write-verbose "Creating a virtual network"
@@ -102,7 +157,13 @@ Function New-AzureVirtualMachine {
             ErrorAction       = "Stop"
             Subnet = $subnet
         }
-        New-AzVirtualNetwork @virtualNetworkParamSplat -sub
+        try {
+            New-AzVirtualNetwork @virtualNetworkParamSplat
+        }
+        Catch {
+            Write-Error "Unable to create Virtual Network $vNetName. Error < $_.Exception >"
+        }
+        
 
     }
 
@@ -111,8 +172,10 @@ Function New-AzureVirtualMachine {
         Name = "Primary"
         PrivateIpAddressVersion = "IPv4"
         SubnetId = $subnetResourceId
-
+        ErrorAction = "Stop"
     }
     
-    New-AzNetworkInterfaceIpConfig -Name "primary" -PrivateIpAddressVersion IPv4 -Primary -SubnetId $subnetResourceId
+    New-AzNetworkInterfaceIpConfig @ipConfigParamSplat
+
+    New-AzDiskConfig -SkuName Standard_LRS -Tier P1 -DiskSizeGB 30 -OsType Windows -
 }
