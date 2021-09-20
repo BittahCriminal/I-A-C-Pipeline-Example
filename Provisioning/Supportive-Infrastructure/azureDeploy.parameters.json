@@ -1,0 +1,38 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "inputObject": {
+            "value": {
+                "AutomationAccount": {
+                    "resourceName": "AA-DSC-Prod",
+                    "location": "westus",
+                    "tags": {
+                        "costcenter": "001",
+                        "application": "DSC",
+                        "owner": "bittahcriminal"
+                    },
+                    "properties": {
+                        "sku": {
+                            "name": "Basic"
+                        }
+                    }
+                },
+                "Keyvault":{
+                    "resourceName": "KV-DSC-Prod",
+                    "location":"westus",
+                    "tags":{
+                        "costcenter": "001",
+                        "application": "DSC",
+                        "owner": "bittahcriminal"
+                    },
+                    "Properties":{
+                        "enabledForDeployment": true,
+                        "enabledForTemplateDeployment": true,
+                        "enabledForDiskEncryption": true,
+                    }
+                }
+            }
+        }
+    }
+}
