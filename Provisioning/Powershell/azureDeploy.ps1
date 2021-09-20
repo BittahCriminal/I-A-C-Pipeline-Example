@@ -2,7 +2,7 @@
 Function ConvertIPtoInt64 {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$True)]
+        [Parameter(Mandatory = $True)]
         [String]
         $IpAddress
     ) 
@@ -13,7 +13,7 @@ Function ConvertIPtoInt64 {
 function ConvertInt64toIP {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$True)]
+        [Parameter(Mandatory = $True)]
         [Int64]
         $Int
     ) 
@@ -24,14 +24,15 @@ function ConvertInt64toIP {
     $fourthOctet = ([math]::truncate(($Int % 65536) / 256)).tostring()
     Write-output ($FirstOctet + "." + $SecondOctet + "." + $thirdOctet + "." + $fourthOctet )
 }
+
 Function New-AzureVirtualMachine {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [TypeName]
         $resoureName,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateScript(
             {
                 $locations = (Get-AzLocation).location
@@ -41,31 +42,26 @@ Function New-AzureVirtualMachine {
         [string]
         $location,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [pscustomobject]$tags,
         
-        [Parameter(ParameterSetName="existingNetwork")]
-        [Parameter(Mandatory=$true)]
+        [Parameter(ParameterSetName = "existingNetwork", Mandatory = $true)]
         [string]$subnetResourceId,
         
-        [Parameter(ParameterSetName="existingNetwork")]
-        [Parameter(Mandatory=$true)]
+        [Parameter(ParameterSetName = "existingNetwork", Mandatory = $true)]
         [string]$vNetResourceId,
 
-        [Parameter(ParameterSetName="NewNetwork")]
-        [Parameter(Mandatory=$true)]
+        [Parameter(ParameterSetName = "NewNetwork", Mandatory = $true)]
         [string]$subnetName,
         
-        [Parameter(ParameterSetName="NewNetwork")]
-        [Parameter(Mandatory=$true)]
+        [Parameter(ParameterSetName = "NewNetwork", Mandatory = $true)]
         [string]$vNetName,
 
-        [Parameter(ParameterSetName="NewNetwork")]
-        [Parameter(Mandatory=$true)]
+        [Parameter(ParameterSetName = "NewNetwork", Mandatory = $true)]
         [string]$vNetResourceGroupName,
 
-        [Parameter(Mandatory=$false)]
-        [int]$numberOfDisks = 0,
+        [Parameter(Mandatory = $false)]
+        [int]$numberOfDisks = 2,
 
         [Parameter()]
         [switch]$publicIp = [switch]$false
@@ -73,8 +69,8 @@ Function New-AzureVirtualMachine {
     )
 
     Write-Verbose -Message "Creating virtual Network if applicable"
-    if($vNetName) {
-        New-AzVirtualNetwork -Name $vNetName -ResourceGroupName
+    if ($vNetName) {
+        New-AzVirtualNetwork -Name $vNetName -ResourceGroupName $vNetResourceGroupName -Location $location -AddressPrefix
     }
 
     Write-Verbose -Message "Setting up IP Configurations"
