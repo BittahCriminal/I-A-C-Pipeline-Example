@@ -123,6 +123,9 @@ Function New-AzureVirtualMachine {
 
     )
 
+    if(Get-AzVmResourceGroup - )
+    Write-Verbose -Message "Creating VM Resource Group"
+
     Write-Verbose -Message "Creating virtual Network if applicable"
     if ($vNetName) {
         Write-Verbose -Message "Creating Vnet resource group"
@@ -177,5 +180,5 @@ Function New-AzureVirtualMachine {
     
     New-AzNetworkInterfaceIpConfig @ipConfigParamSplat
 
-    New-AzDiskConfig -SkuName Standard_LRS -Tier P1 -DiskSizeGB 30 -OsType Windows -
+    New-AzNetworkInterface -Name ($resoureName + "VNIC") -
 }
