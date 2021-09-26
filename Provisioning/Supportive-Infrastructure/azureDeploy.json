@@ -8,66 +8,36 @@
     },
     "functions": [],
     "variables": {
-        "tenantId":"[subscription().tenantId]"
+        "tenantId":"[subscription().tenantId]",
+        "automationAccountAPIVersion":"2020-01-13-preview"
     },
     "resources": [
         {
-            "name": "[parameters('inputObject').resourceName]",
+            "name": "[parameters('inputObject').AutomationAccount.resourceName]",
             "type": "Microsoft.Automation/automationAccounts",
-            "apiVersion": "2020-01-13-preview",
-            "location": "[parameters('inputObject').location]",
-            "tags": "[parameters('inputObject').tags]",
-            "properties": {
-                "encryption": {
-                    "keySource": "Microsoft.Keyvault",
-                    "keyVaultProperties": {
-                         
-                    }
-                }
+            "apiVersion": "[variables('automationAccountAPIVersion')]",
+            "location": "[parameters('inputObject').AutomationAccount.location]",
+            "tags": "[parameters('inputObject').AutomationAccount.tags]",
+            "identity": {
+                "type": "SystemAssigned"
             },
+            "properties": "[parameters('inputObject').AutomationAccount.properties]",
             "dependson":[
                 "keyvaultCopy"
             ]
         },
         {
-            "name": "keyVault1",
+            "name": "[parameters('inputObject').KeyVault.resourceName]",
             "type": "Microsoft.KeyVault/vaults",
             "apiVersion": "2016-10-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('inputObject').KeyVault.location]",
             "copy":{
                 "name": "keyvaultCopy",
                 "count": 1,
                 "mode": "parallel"
             },
-            "tags": {
-                "displayName": "keyVault1"
-            },
-            "properties": {
-                "enabledForDeployment": true,
-                "enabledForTemplateDeployment": true,
-                "enabledForDiskEncryption": true,
-                "tenantId": "[variables('tenantId')]",
-                "accessPolicies": [
-                    {
-                        "tenantId": "[variables('tenantId')]",
-                        "objectId": "objectId",
-                        "permissions": {
-                            "keys": [
-                                "Get"
-                            ],
-                            "secrets": [
-                                "List",
-                                "Get",
-                                "Set"
-                            ]
-                        }
-                    }
-                ],
-                "sku": {
-                    "name": "standard",
-                    "family": "A"
-                }
-            },
+            "tags": "[parameters('inputObject').KeyVault.tags]",
+            "properties": "[parameters('inputObject').KeyVault.properties]",
             "resources": [
                 {
                     "type": "secrets",
@@ -81,12 +51,20 @@
                     }
                 }
             ]
+        },
+        {
+            "name": "[parameters('inputObject').VirtualNetwork.resourceName]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-11-01",
+            "location": "[parameters('inputObject').VirtualNetwork.location]",
+            "tags":"[parameters('inputObject').VirtualNetwork.tags]",
+            "properties": "[parameters('inputObject').VirtualNetwork.properties]"
         }
     ],
     "outputs": {
-        "": {
+        "AutomationAccountManagedIdentity": {
             "type": "string",
-            "value": "value"
+            "value": "[reference(resourceId('Microsoft.Automation/automationAccounts',parameters('inputObject').AutomationAccount.resourceName), variables('automationAccountAPIVersion') , 'full').identity.principalId]"
         }
     }
 }

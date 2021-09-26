@@ -30,6 +30,56 @@
                         "enabledForDeployment": true,
                         "enabledForTemplateDeployment": true,
                         "enabledForDiskEncryption": true,
+                        "createMode": "default",
+                        "enablePurgeProtection": true,
+                        "enableSoftDelete": true,
+                        "tenantId":"[variables('tenantId')]",
+                        "accessPolicies": [
+                            {
+                                "objectId": "[reference(resourceId('Microsoft.Automation/automationAccounts',parameters('inputObject').AutomationAccount.resourceName), variables('automationAccountAPIVersion') , 'full').identity.principalId]",
+                                "permissions": {
+                                    "secrets": [
+                                        "Get"
+                                    ]
+                                },
+                                "tenantId":"[variables('tenantId')]"
+                            }
+                        ],
+                        "sku": {
+                            "name": "standard",
+                            "family": "A"
+                        }
+                    }
+                },
+                "VirtualNetwork": {
+                    "resourceName": "VNET-Production",
+                    "location":"westus",
+                    "tags":{
+                        "costcenter": "001",
+                        "application": "Shared",
+                        "owner": "bittahcriminal"
+                    },
+                    "properties":{
+                        "addressSpace": {
+                            "addressPrefixes": [
+                                "10.0.0.0/23"
+                            ]
+                        },
+                        "subnets": [
+                            {
+                                "name": "Mgmt-Subnet",
+                                "properties": {
+                                    "addressPrefix": "10.0.0.0/24"
+                                }
+                            },
+                            {
+                                "name": "Customer-Subnet",
+                                "properties": {
+                                    "addressPrefix": "10.0.1.0/24"
+                                }
+                            }
+                        ]
+        
                     }
                 }
             }
